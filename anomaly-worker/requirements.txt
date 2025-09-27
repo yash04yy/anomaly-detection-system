@@ -1,3 +1,7 @@
 confluent-kafka
 scikit-learn
 numpy
+pymongo
+psycopg2-binary
+requests
+python-dotenv

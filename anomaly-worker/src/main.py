@@ -3,13 +3,15 @@ from confluent_kafka import KafkaError
 from src.consumer import create_consumer
 from src.detector import MovingAverageDetector
 from src.ml_detector import IsolationForestDetector
-
+from src.notifier import Notifier
+from dotenv import load_dotenv
 
 BROKER = "127.0.0.1:9092"
 TOPIC = os.getenv("KAFKA_TOPIC", "metrics")
 GROUP_ID = "anomaly-worker"
 
 def run():
+    load_dotenv() 
     consumer = create_consumer(BROKER, GROUP_ID, TOPIC)
     # Choose which detector to use
     use_ml = os.getenv("USE_ISOLATION_FOREST", "false").lower() == "true"
@@ -20,6 +22,7 @@ def run():
         detector = MovingAverageDetector(window_size=5, threshold=20)
         print("[Worker] Using Moving Average Detector")
 
+    notifier = Notifier()
     print("[Worker] Listening for metrics...")
     while True:
         msg = consumer.poll(1.0)
@@ -34,11 +37,15 @@ def run():
 
         if use_ml:
             anomalies = detector.add_metric(cpu)
-            if anomalies:
-                print(f"[ANOMALY-BATCH] CPU anomalies detected: {anomalies}")
+            for a in anomalies:
+                alert_msg = f"Anomaly detected (CPU={a})"
+                print("[ALERT]", alert_msg)
+                notifier.notify(alert_msg)
         else:
             if detector.detect(cpu):
-                print("[ANOMALY] CPU spike detected:", metric)
+                alert_msg = f"Anomaly detected: {metric}"
+                print("[ALERT]", alert_msg)
+                notifier.notify(alert_msg)
             else:
                 print("[OK]", metric)
     consumer.close()
