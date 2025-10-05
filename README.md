@@ -11,6 +11,11 @@ A scalable, explainable, and robust real-time anomaly detection platform using a
 - **Event-Driven Architecture:**
   - Node.js service simulates/generates metrics and streams them to Kafka.
   - Python worker consumes metrics, detects anomalies in real time.
+- **Observability & Metrics with Prometheus + Grafana:**
+  - The Python anomaly worker exposes a Prometheus-compatible `/metrics` HTTP endpoint (default: `http://localhost:8000/metrics`).
+  - Metrics include: processed metric count, detected anomaly count, event processing latencies, and health.
+  - `/infra/prometheus.yml` and Docker Compose provisions the stack.
+  - Grafana can be linked to Prometheus to visualize real-time time-series and alert on detection rates, etc.
 - **Hardened, Explainable Anomaly Detection:**
   - Two core detectors:
     - **Moving Average Detector:** Rolling mean + deviation, tunable window/threshold, explains every detection.
@@ -41,11 +46,39 @@ flowchart LR
     B -- stream --> C["Python Anomaly Worker"]
     C -- alerts --> D["Notification Service"]
     C -- events/context --> E["Postgres (Anomalies DB)"]
+    C -- metrics --> H["Prometheus"]
+    H -- dashboards --> I["Grafana"]
     E -- REST/HTTP --> F["Flask API/Dashboard"]
     F -- visualizes --> G["Web Browser"]
 ```
 
 ---
+
+## Metrics, Monitoring & Visualization
+
+- **Prometheus Integration**
+  - The anomaly worker exposes an HTTP `/metrics` endpoint. Metrics follow Prometheus exposition format, e.g.:
+    - `anomaly_events_total` (total anomalies detected)
+    - `metrics_processed_total` (total metrics seen)
+    - Latencies, uptime, and queue gauge metrics
+  - Default endpoint: `http://localhost:8000/metrics`
+  - Prometheus is pre-configured via `infra/prometheus.yml` for local use.
+
+- **Grafana Dashboards**
+  - Grafana is provisioned in Docker Compose for exploring, alerting, and visualizing Prometheus metrics.
+  - Common visualizations: anomaly rate over time, ingestion processing rate, worker health, etc.
+  - Dashboards can be added/imported in Grafana web UI.
+
+### Starting Prometheus & Grafana locally
+
+```sh
+cd anomaly-detection-system/infra
+docker-compose up prometheus grafana
+# Prometheus: http://localhost:9090/
+# Grafana:   http://localhost:3000/ (admin:admin by default)
+# Add your Prometheus data source (http://prometheus:9090).
+```
+
 
 ## Setup & Usage
 
