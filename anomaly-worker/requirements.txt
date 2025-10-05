@@ -7,3 +7,5 @@ requests
 python-dotenv
 prometheus_client
 psutil
+psycopg2-binary
+flask
